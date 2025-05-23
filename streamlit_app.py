@@ -1,29 +1,42 @@
-# streamlit_app.py
-
 import streamlit as st
 from openpyxl import load_workbook
-from openpyxl.writer.excel import save_virtual_workbook
+from io import BytesIO
 from Einspringprogramm import berechne_einspringer_statistik
 
-st.title("Einspringprogramm Web-App (openpyxl)")
+st.set_page_config(page_title="Einspringprogramm", layout="centered")
+st.title("📊 Einspringprogramm Web-App")
 
-uploaded_file = st.file_uploader("Excel-Datei (Dienstpläne2025.xlsx) hochladen", type=["xlsx"])
+uploaded_file = st.file_uploader(
+    "📎 Excel-Datei hochladen (z. B. Dienstpläne2025.xlsx)", type=["xlsx"]
+)
 
 if uploaded_file is not None:
-    wb = load_workbook(uploaded_file)
-    wb = berechne_einspringer_statistik(wb)
+    try:
+        wb = load_workbook(uploaded_file)
+        wb = berechne_einspringer_statistik(wb)
 
-    st.success("Einspringer-Statistik erfolgreich berechnet!")
+        st.success("✅ Statistik erfolgreich berechnet!")
 
-    # Optional: Beispielwert anzeigen (z. B. erstes Feld der Statistik)
-    ws_stat = wb["Einspringer-Statistik"]
-    beispielwert = ws_stat["A2"].value if ws_stat.max_row >= 2 else "Keine Daten"
-    st.write("Erster Name in Statistik:", beispielwert)
+        # Vorschau (Name in A2 zeigen)
+        ws_stat = wb["Einspringer-Statistik"]
+        if ws_stat.max_row >= 2:
+            beispielname = ws_stat["A2"].value
+            st.info(f"👤 Erster Name in Statistik: **{beispielname}**")
+        else:
+            st.warning("⚠️ Keine Namen in der Statistik gefunden.")
 
-    excel_bytes = save_virtual_workbook(wb)
-    st.download_button(
-        label="Bearbeitete Datei herunterladen",
-        data=excel_bytes,
-        file_name="Dienstpläne2025_mit_Statistik.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        # In BytesIO speichern
+        excel_bytes = BytesIO()
+        wb.save(excel_bytes)
+        excel_bytes.seek(0)
+
+        # Download-Button
+        st.download_button(
+            label="⬇️ Bearbeitete Datei herunterladen",
+            data=excel_bytes,
+            file_name="Dienstpläne2025_mit_Statistik.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as e:
+        st.error(f"❌ Fehler beim Verarbeiten der Datei: {e}")
